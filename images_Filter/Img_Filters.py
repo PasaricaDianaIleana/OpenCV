@@ -1,7 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[ ]:
 
 
 from PyQt5.QtWidgets import QFileDialog, QMainWindow
@@ -13,7 +9,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from matplotlib import pyplot as plt
 
 class Ui_MainWindow(object):
-    initialImg=None
+   
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(728, 383)
@@ -53,15 +49,15 @@ class Ui_MainWindow(object):
         self.sigmaColorSlider.valueChanged.connect(self.changeSigmaColorValue)
         self.kernelLbl = QtWidgets.QLabel(self.centralwidget)
         self.kernelLbl.setGeometry(QtCore.QRect(610, 130, 55, 16))
-        self.kernelLbl.setText("Kernel")
+        self.kernelLbl.setText("3")
         self.kernelLbl.setObjectName("kernelLbl")
         self.sigmaLbl = QtWidgets.QLabel(self.centralwidget)
         self.sigmaLbl.setGeometry(QtCore.QRect(620, 200, 55, 16))
-        self.sigmaLbl.setText("Sigma")
+        self.sigmaLbl.setText("0.1")
         self.sigmaLbl.setObjectName("sigmaLbl")
         self.sigmaColorLbl = QtWidgets.QLabel(self.centralwidget)
         self.sigmaColorLbl.setGeometry(QtCore.QRect(620, 270, 55, 16))
-        self.sigmaColorLbl.setText("Sigma color")
+        self.sigmaColorLbl.setText("0.1")
         self.sigmaColorLbl.setObjectName("sigmaColorLbl")
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
@@ -79,12 +75,10 @@ class Ui_MainWindow(object):
         img = cv2.VideoCapture()
         img.open(0, cv2.CAP_DSHOW)
         while(True):
+            global frame
             ret, frame = img.read()
-            grayScaleImg=cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             cv2.imshow('frame', frame)
-            self.updateImages(updateImages)
-            for x in range(1,9,1):
-                self.applyFilter(grayScaleImg,x)
+            self.updateImages()
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
         img.release()
@@ -93,39 +87,39 @@ class Ui_MainWindow(object):
     def openWebCam(self):
         self.openWeb()
     
-        
-    def BlurImage(self,frame):
-        Img=cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        blur5 = cv2.blur(Img, (20, 20))
-        cv2.imshow('blur img',blur5)
-        
+   
     def applyFilter(self,frame,number, kernelSize,sigma, sigmaCol):
         if number == 1:
-            Img=cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            Img=cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             blurImg = cv2.blur(Img, (kernelSize, kernelSize))
             cv2.imshow('blur img',blurImg)
         elif number == 2:
-            img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            img = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
             gausImg = cv2.GaussianBlur(img,(kernelSize,kernelSize),sigma)
             cv2.imshow('gaus img',gausImg)
         elif number == 3:
-            img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            img = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             medianFiltre = cv2.medianBlur(img, kernelSize)
             cv2.imshow('median img',medianFiltre)
         elif number == 4:
-            sobelx = cv2.Sobel(frame,cv2.CV_64F, 1, 0, kernelSize)
+            img = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            sobelx = cv2.Sobel(img,cv2.CV_64F, 1, 0, kernelSize)
             cv2.imshow('sobel orizontala',sobelx)
         elif number == 5:
-            sobely = cv2.Sobel(frame,cv2.CV_64F, 0, 1, kernelSize)
+            img = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            sobely = cv2.Sobel(img,cv2.CV_64F, 0, 1, kernelSize)
             cv2.imshow('sobel verticala',sobely)
-        elif number == 6:    
-            laplacian = cv2.Laplacian(frame, cv2.CV_64F)
+        elif number == 6:  
+            img = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            laplacian = cv2.Laplacian(img, cv2.CV_64F)
             cv2.imshow('laplacian',laplacian)
         elif number == 7:
-            bilateral = cv2.bilateralFilter(frame, kernelSize, sigmaCol, sigma)
+            img = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            bilateral = cv2.bilateralFilter(img, kernelSize, sigmaCol, sigma)
             cv2.imshow('bilateral',bilateral)
         elif number == 8:    
-            edges = cv2.Canny(frame, 100, 200)
+            img = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            edges = cv2.Canny(img, 100, 200)
             cv2.imshow('canny',edges)
         else:
             print('no image')   
@@ -138,19 +132,26 @@ class Ui_MainWindow(object):
             sobelKernelSize = value * 2 + 1
         else:
              sobelKernelSize = 31
-        self.kernelLbl.setText('Kernel:' + int(sobelKernelSize))
-        
+        self.kernelLbl.setText(str(sobelKernelSize))
+        self.updateImages()
     def changeSigmaValue(self):    
         value = self.sigmaSlider.value() 
         sigma = float(value)/10;
-        self.sigmaLbl.setText('sigma:' + float(sigma))
-    def updateImages(self,img):
-        print('update values')
+        self.sigmaLbl.setText(str(sigma))
+        self.updateImages()
+    def updateImages(self):
+        img=frame.copy()
+        KernelVal = int(self.kernelLbl.text())
+        sigmaVal = float(self.sigmaLbl.text())
+        sigmaColorVal = float(self.sigmaColorLbl.text())
+        for x in range(1,9,1):
+                self.applyFilter(img,x,KernelVal,sigmaVal,sigmaColorVal)
         
     def changeSigmaColorValue(self):
         value = self.sigmaColorSlider.value() 
         sigmaColor = float(value)/10;
-        self.sigmaColorLbl.setText('sigma color:' + float(sigmaColor))
+        self.sigmaColorLbl.setText(str(sigmaColor))
+        self.updateImages()
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
@@ -169,10 +170,5 @@ if __name__ == "__main__":
     
     app.exec_()
     app.quit()
-
-
-# In[ ]:
-
-
 
 
